@@ -1,6 +1,7 @@
 #include "Arduino.h"
 #include "U8g2lib.h"
 #include "Point.h"
+#include "Switch.h"
 
 #define POT 0
 
@@ -10,7 +11,7 @@ const double oneGrad = 360.0 / 1023;
 const double oneMin = 60.0 / 100.0;
 const int x_mid = 128 / 2;
 const int y_mid = 64 / 2;
-const int length = 36;
+const int length = 34;
 
 static int dist = 6;
 static int mem = 0;
@@ -18,6 +19,7 @@ static boolean intr = false;
 static boolean was_low = false;
 
 boolean refresh = false;
+Switch interrupt = Switch(13);
 
 void setup() {
 	Serial.begin(115200);
@@ -51,10 +53,7 @@ Point caldulatePos(int value) {
 
 	int x = x_mid + gk;
 	int y = y_mid - ak;
-	Point point(x, y);
-
-	//drawCompassRose(value);
-	return point;
+	return Point(x, y);
 }
 
 void printRose() {
@@ -107,30 +106,27 @@ int writeOut(double value) {
 	return deg;
 }
 
-void interrupt(int sw) {
-	if (!intr && sw == 1 && was_low) {
-		Serial.println("enable interrupt: ");
-		intr = true;
-		was_low = false;
-	}
-
-	if (intr && sw == 1 && was_low) {
-		Serial.println("disable interrupt: ");
-		intr = false;
-		was_low = false;
-	}
-
-	if (sw == 1) {
-		was_low = false;
-	} else {
-		was_low = true;
-	}
-}
+//void interrupt(int sw) {
+//	if (!intr && sw == 1 && was_low) {
+//		Serial.println("enable interrupt: ");
+//		intr = true;
+//		was_low = false;
+//	}
+//
+//	if (intr && sw == 1 && was_low) {
+//		Serial.println("disable interrupt: ");
+//		intr = false;
+//		was_low = false;
+//	}
+//
+//	if (sw == 1) {
+//		was_low = false;
+//	} else {
+//		was_low = true;
+//	}
+//}
 
 void test() {
-	//int degs[] = {10, 20, 30, 40, 50, 60, 70, 80, 90};
-	//int degs[] = {100, 110, 120, 130, 140, 150, 160, 170, 180};
-	//int degs[] = {190, 200, 210, 220, 230, 240, 250, 260, 270};
 	int degs[] = { 280, 290, 300, 310, 320, 330, 340, 350, 360 };
 	for (int deg : degs) {
 		Point point = caldulatePos(deg);
@@ -141,8 +137,8 @@ void test() {
 }
 
 void loop() {
-	interrupt(digitalRead(13));
-	if (!intr) {
+	 interrupt.toggle();
+	if (interrupt.isOff()) {
 		refresh = false;
 		int rawVal = analogRead(POT);
 		int deg = writeOut(rawVal);
