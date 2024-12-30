@@ -11,7 +11,7 @@
  */
 Switch::Switch(int pin) {
 	this->pin = pin;
-	this->wasLow = true;
+	this->switchLow = true;
 }
 
 /**
@@ -25,8 +25,8 @@ boolean Switch::toggle() {
 	 * Wenn der Eingang HIGH ist, der Taster zwischenzeitlich gelöst wurde und der Merker 0 ist,
 	 * wird der Merker auf 1 gesetzt und true zurückgeben, was dem Status AN entspricht.
 	 */
-	if (digitalRead(pin) == HIGH && wasLow && !mem) {
-		wasLow = false;
+	if (digitalRead(pin) == HIGH && switchLow && !mem) {
+		switchLow = false;
 		mem = 1;
 	}
 
@@ -34,8 +34,8 @@ boolean Switch::toggle() {
 	 * Wenn der Eingang HIGH ist, der Taster zwischenzeitlich gelöst wurde und der Merker 1 ist,
 	 * wird der Merker auf 0 gesetzt und false zurückgeben, was dem Status AUS entspricht.
 	 */
-	if (digitalRead(pin) == HIGH && wasLow && mem) {
-		wasLow = false;
+	if (digitalRead(pin) == HIGH && switchLow && mem) {
+		switchLow = false;
 		mem = 0;
 	}
 
@@ -45,9 +45,9 @@ boolean Switch::toggle() {
 	 * also losgelassen wurde.
 	 */
 	if (digitalRead(pin) == HIGH) {
-		wasLow = false;
+		switchLow = false;
 	} else {
-		wasLow = true;
+		switchLow = true;
 	}
 
 	return isOn();

@@ -1,7 +1,7 @@
 #include <Arduino.h>
 class Switch{
 	private:
-		boolean wasLow = false;
+		boolean switchLow = false;
 		int pin = 0;
 		int mem = 0;
 

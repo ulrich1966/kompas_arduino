@@ -4,6 +4,8 @@
 #include "Switch.h"
 
 #define POT 0
+#define PLUS 11
+#define MINUS 12
 
 U8G2_SH1106_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, /* reset=*/U8X8_PIN_NONE);
 
@@ -15,10 +17,10 @@ const int length = 34;
 
 static int dist = 6;
 static int mem = 0;
-static boolean intr = false;
-static boolean was_low = false;
+static int stepOffset = 0;
 
 boolean refresh = false;
+boolean offsetLow = false;
 Switch interrupt = Switch(13);
 
 void setup() {
@@ -57,25 +59,25 @@ Point caldulatePos(int value) {
 }
 
 void printRose() {
-	u8g2.setCursor(x_mid - 2, 10), u8g2.print("N");
-	u8g2.setCursor(x_mid + 23, y_mid + 5), u8g2.print("O");
-	u8g2.setCursor(x_mid - 2, y_mid + 32), u8g2.print("S");
-	u8g2.setCursor(x_mid - 28, y_mid + 5), u8g2.print("W");
+	u8g2.drawStr(x_mid - 2, 10, "N");
+	u8g2.drawStr(x_mid + 23, y_mid + 5, "O");
+	u8g2.drawStr(x_mid - 2, y_mid + 32, "S");
+	u8g2.drawStr(x_mid - 28, y_mid + 5, "W");
 
 	u8g2.setFont(u8g2_font_4x6_tf);
 
-	u8g2.setCursor(x_mid + 16, y_mid - 16),	u8g2.print("NO");
-	u8g2.setCursor(x_mid + 17, y_mid + 19),	u8g2.print("SO");
-	u8g2.setCursor(x_mid - 24, y_mid + 20),	u8g2.print("SW");
-	u8g2.setCursor(x_mid - 23, y_mid - 15),	u8g2.print("NW");
+	u8g2.drawStr(x_mid + 16, y_mid - 16, "NO");
+	u8g2.drawStr(x_mid + 17, y_mid + 19, "SO");
+	u8g2.drawStr(x_mid - 24, y_mid + 20, "SW");
+	u8g2.drawStr(x_mid - 23, y_mid - 15, "NW");
 
 	u8g2.setFont(u8g2_font_6x13_tf);
 	u8g2.drawCircle(x_mid, y_mid, 20, U8G2_DRAW_ALL);
 }
 
-int writeOut(double value) {
+int writeOut(double value, int offset) {
 	double decVal = oneGrad * value;
-	int deg = oneGrad * value;
+	int deg = (oneGrad * value) + offset;
 	int min = ((decVal - deg) * oneMin) * 100;
 	int x = 0;
 	int y = 10;
@@ -106,26 +108,6 @@ int writeOut(double value) {
 	return deg;
 }
 
-//void interrupt(int sw) {
-//	if (!intr && sw == 1 && was_low) {
-//		Serial.println("enable interrupt: ");
-//		intr = true;
-//		was_low = false;
-//	}
-//
-//	if (intr && sw == 1 && was_low) {
-//		Serial.println("disable interrupt: ");
-//		intr = false;
-//		was_low = false;
-//	}
-//
-//	if (sw == 1) {
-//		was_low = false;
-//	} else {
-//		was_low = true;
-//	}
-//}
-
 void test() {
 	int degs[] = { 280, 290, 300, 310, 320, 330, 340, 350, 360 };
 	for (int deg : degs) {
@@ -136,14 +118,36 @@ void test() {
 	Serial.println("-----------------");
 }
 
+int offset() {
+	Serial.print("war LOW: "), Serial.print(offsetLow), Serial.print(" Plus: "), Serial.print(digitalRead(PLUS)), Serial.print(" Minus: "), Serial.print(digitalRead(MINUS));
+
+	if(digitalRead(PLUS) == LOW && offsetLow){
+		stepOffset = stepOffset + 1;
+		offsetLow = false;
+	}
+
+	if(digitalRead(MINUS) == LOW && offsetLow){
+		stepOffset = stepOffset - 1;
+		offsetLow = false;
+	}
+
+	if(digitalRead(PLUS) == HIGH && digitalRead(MINUS) == HIGH){
+		offsetLow = true;
+	}
+
+	Serial.print(" offset value: "), Serial.println(stepOffset);
+	return stepOffset;
+}
+
 void loop() {
-	 interrupt.toggle();
-	if (interrupt.isOff()) {
+
+	if (interrupt.toggle()) {
 		refresh = false;
 		int rawVal = analogRead(POT);
-		int deg = writeOut(rawVal);
+		int deg = writeOut(rawVal, offset());
 		if (refresh) {
-			//test();
+			if(deg == 0 || deg == 360)
+				stepOffset = 0;
 			Point point = caldulatePos(deg);
 			drawCompassRose(point);
 		}
